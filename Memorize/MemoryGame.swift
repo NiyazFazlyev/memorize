@@ -33,6 +33,10 @@ struct MemoryGame <CardContent> where CardContent: Equatable  {
         print("\(cards)")
     }
     
+    mutating func shuffle(){
+        cards.shuffle()
+    }
+    
     
     init(numberOfPairsOfCards: Int, createCardContent: (Int)-> CardContent) {
         cards = []
@@ -41,6 +45,7 @@ struct MemoryGame <CardContent> where CardContent: Equatable  {
             cards.append(Card(content: content, id: pairIndex * 2))
             cards.append(Card(content: content, id: pairIndex * 2+1))
         }
+        cards.shuffle()
     }
     
     
@@ -49,6 +54,55 @@ struct MemoryGame <CardContent> where CardContent: Equatable  {
         var isMatched = false
         let content: CardContent
         let id: Int
+        
+        //MARK: Bonus time
+        
+        var bomusTimeLimit: TimeInterval = 6
+        
+        private var faceUpTime: TimeInterval {
+            if let lastFaceUpDate = self.lastFaceUpDate {
+                return pastFaceUpTime + Date().timeIntervalSince(lastFaceUpDate)
+            } else {
+                return pastFaceUpTime
+            }
+        }
+        
+        var lastFaceUpDate: Date?
+        
+        var pastFaceUpTime: TimeInterval = 0
+        
+        var bonusTimeRemaining: TimeInterval {
+            max(0, bomusTimeLimit - faceUpTime)
+        }
+        
+        var bonusRemaining: Double {
+            (bomusTimeLimit > 0 && bonusTimeRemaining > 0) ? bonusTimeRemaining / bomusTimeLimit : 0
+        }
+        
+        // whether the card was matched during the bonus time period
+        var hasEarnedBonus: Bool {
+            isMatched && bonusTimeRemaining > 0
+        }
+        // whether we are currently face up, unmatched and have not yet used up the bonus window
+        var isConsumingBonusTime: Bool {
+            isFaceUp && !isMatched && bonusTimeRemaining > 0
+        }
+        
+        // called when the card transitions to face up state
+        private mutating func startUsingBonusTime() {
+            if isConsumingBonusTime, lastFaceUpDate == nil {
+                lastFaceUpDate = Date()
+            }
+        }
+        // called when the card goes back face down (or gets matched)
+        private mutating func stopUsingBonusTime() {
+            pastFaceUpTime = faceUpTime
+            self.lastFaceUpDate = nil
+        }
+        
+        
+        
+        
     }
 }
 
